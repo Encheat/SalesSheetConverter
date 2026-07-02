@@ -1,7 +1,73 @@
-﻿@page "/"
+@page "/"
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Components.Forms
 
-<h1>Hello, world!</h1>
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpClientFactory
+<h3>Sales Sheet Converter</h3>
 
-Welcome to your new app.
+<p>Upload an image of your sales sheet:</p>
+
+<InputFile OnChange="OnFileSelected" />
+
+<br /><br />
+
+<button @onclick="Upload" disabled="@(_file is null)">
+    Convert to CSV
+</button>
+
+@if (!string.IsNullOrWhiteSpace(_result))
+{
+    <h4>Result</h4>
+    <pre>@_result</pre>
+}
+
+@code {
+    private IBrowserFile? _file;
+    private string? _result;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+{
+    _file = e.File;
+    _result = null;
+}
+
+    private async Task Upload()
+    {
+        if (_file is null) return;
+
+        using var content = new MultipartFormDataContent();
+
+        using var stream = _file.OpenReadStream(10 * 1024 * 1024);
+        var fileContent = new StreamContent(stream);
+
+        fileContent.Headers.ContentType =
+            new MediaTypeHeaderValue(_file.ContentType);
+
+        content.Add(fileContent, "file", _file.Name);
+
+        using var http = HttpClientFactory.CreateClient("FunctionsApi");
+
+        var response = await http.PostAsync(
+            "http://localhost:7071/api/ConvertToCsv",
+            content);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _result = await response.Content.ReadAsStringAsync();
+            return;
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        var base64 = Convert.ToBase64String(bytes);
+
+        await JS.InvokeVoidAsync(
+            "downloadFile",
+            "Sales.csv",
+            "text/csv",
+            base64);
+        _result = "CSV downloaded successfully.";
+    }
+}
