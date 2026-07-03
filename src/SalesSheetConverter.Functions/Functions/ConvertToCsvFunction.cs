@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Http;
+using SalesSheetConverter.Functions.Services.AI;
 
 namespace SalesSheetConverter.Functions;
 
@@ -14,11 +15,13 @@ public class ConvertToCsvFunction
 {
     private readonly ILogger<ConvertToCsvFunction> _logger;
     private readonly CsvExportService _csvExportService;
+    private readonly DocumentIntelligenceService _documentIntelligenceService;
 
-    public ConvertToCsvFunction(ILogger<ConvertToCsvFunction> logger, CsvExportService csvExportService)
+    public ConvertToCsvFunction(ILogger<ConvertToCsvFunction> logger, CsvExportService csvExportService, DocumentIntelligenceService documentIntelligenceService)
     {
         _logger = logger;
         _csvExportService = csvExportService;
+        _documentIntelligenceService = documentIntelligenceService;
     }
 
     [Function("ConvertToCsv")]
@@ -73,6 +76,9 @@ public class ConvertToCsvFunction
                     // TODO: replace this placeholder with actual extraction logic
                     // var extractedSales = await _documentIntelligenceService.ExtractSalesAsync(memoryStream);
                     // sales.AddRange(extractedSales);
+                    var text = await _documentIntelligenceService.ExtractTextAsync(memoryStream);
+                    _logger.LogInformation($"OCR Result:\n{text}");
+                    // return new OkObjectResult(text);
                 }
 
                 section = await reader.ReadNextSectionAsync();
