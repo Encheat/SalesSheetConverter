@@ -10,7 +10,7 @@
 
 <p>Upload the images of your sales sheets:</p>
 
-<InputFile OnChange="OnFileSelected" multiple />
+<InputFile OnChange="OnFileSelected" multiple accept=@string.Join(",", allowedTypes) />
 
 <br /><br />
 
@@ -27,6 +27,17 @@
 @code {
     private List<IBrowserFile> _files = new();
     private string? _result;
+    string[] allowedTypes = new[]
+    {
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "image/tiff",
+        "image/svg+xml"
+    };
 
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
@@ -34,41 +45,49 @@
         _result = null;
     }
 
-        private async Task Upload()
+    private async Task Upload()
     {
         if (_files.Count == 0) return;
 
-        using var content = new MultipartFormDataContent();
+        try{
+            using var content = new MultipartFormDataContent();
 
-        foreach (var file in _files)
-        {
-            using var stream = file.OpenReadStream(10 * 1024 * 1024);
-            var fileContent = new StreamContent(stream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            foreach (var file in _files)
+            {
+                if (!allowedTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+                {
+                    _result = $"Only image files are allowed: {file.Name} is invalid type {file.ContentType}.";
+                    return;
+                }
+                
+                using var stream = file.OpenReadStream(10 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                
+                var fileContent = new ByteArrayContent(ms.ToArray());
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "files", file.Name);
+            }
 
-            content.Add(fileContent, "files", file.Name);
+            var http = HttpClientFactory.CreateClient("FunctionsApi");
+
+            var response = await http.PostAsync("http://localhost:7071/api/ConvertToCsv", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _result = await response.Content.ReadAsStringAsync();
+                return;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(bytes);
+
+            await JS.InvokeVoidAsync("downloadFile", "Sales.csv", "text/csv", base64);
+            _result = "CSV downloaded successfully.";
         }
-
-        using var http = HttpClientFactory.CreateClient("FunctionsApi");
-
-        var response = await http.PostAsync(
-            "http://localhost:7071/api/ConvertToCsv",
-            content);
-
-        if (!response.IsSuccessStatusCode)
+        catch (Exception ex)
         {
-            _result = await response.Content.ReadAsStringAsync();
-            return;
+            _result = $"Upload failed: {ex.Message}";
         }
-
-        var bytes = await response.Content.ReadAsByteArrayAsync();
-        var base64 = Convert.ToBase64String(bytes);
-
-        await JS.InvokeVoidAsync(
-            "downloadFile",
-            "Sales.csv",
-            "text/csv",
-            base64);
-        _result = "CSV downloaded successfully.";
     }
 }
