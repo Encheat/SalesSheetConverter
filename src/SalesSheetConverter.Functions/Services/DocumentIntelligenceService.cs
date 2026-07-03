@@ -1,0 +1,1 @@
+//purpose will be simply Task<List<SaleRecord>> ExtractAsync(Stream image)

@@ -8,13 +8,13 @@
 @inject IHttpClientFactory HttpClientFactory
 <h3>Sales Sheet Converter</h3>
 
-<p>Upload an image of your sales sheet:</p>
+<p>Upload the images of your sales sheets:</p>
 
-<InputFile OnChange="OnFileSelected" />
+<InputFile OnChange="OnFileSelected" multiple />
 
 <br /><br />
 
-<button @onclick="Upload" disabled="@(_file is null)">
+<button @onclick="Upload" disabled="@(_files.Count == 0)">
     Convert to CSV
 </button>
 
@@ -25,28 +25,29 @@
 }
 
 @code {
-    private IBrowserFile? _file;
+    private List<IBrowserFile> _files = new();
     private string? _result;
 
     private void OnFileSelected(InputFileChangeEventArgs e)
-{
-    _file = e.File;
-    _result = null;
-}
-
-    private async Task Upload()
     {
-        if (_file is null) return;
+        _files = e.GetMultipleFiles().ToList();
+        _result = null;
+    }
+
+        private async Task Upload()
+    {
+        if (_files.Count == 0) return;
 
         using var content = new MultipartFormDataContent();
 
-        using var stream = _file.OpenReadStream(10 * 1024 * 1024);
-        var fileContent = new StreamContent(stream);
+        foreach (var file in _files)
+        {
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
 
-        fileContent.Headers.ContentType =
-            new MediaTypeHeaderValue(_file.ContentType);
-
-        content.Add(fileContent, "file", _file.Name);
+            content.Add(fileContent, "files", file.Name);
+        }
 
         using var http = HttpClientFactory.CreateClient("FunctionsApi");
 
