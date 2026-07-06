@@ -6,22 +6,24 @@ namespace SalesSheetConverter.Functions.Services;
 
 public class CsvExportService
 {
-    public byte[] CreateCsv(IEnumerable<SaleRecord> sales)
+    public byte[] CreateCsv(IEnumerable<SalesExtractionResult> sales)
     {
         var sb = new StringBuilder();
 
-        sb.AppendLine("Date,Item,Quantity,Unit Price,Total Price");
+        //TODO: rework csv export to handle generic incoming objects
 
-        foreach (var sale in sales)
-        {
-            sb.AppendLine(
-                string.Join(",",
-                    sale.Date?.ToString("yyyy-MM-dd") ?? "",
-                    Escape(sale.Item),
-                    sale.Quantity,
-                    sale.UnitPrice.ToString(CultureInfo.InvariantCulture),
-                    sale.TotalPrice.ToString(CultureInfo.InvariantCulture)));
-        }
+        // sb.AppendLine("Date,Item,Quantity,Unit Price,Total Price");
+
+        // foreach (var sale in sales)
+        // {
+        //     sb.AppendLine(
+        //         string.Join(",",
+        //             sale.Date?.ToString("yyyy-MM-dd") ?? "",
+        //             Escape(sale.Item),
+        //             sale.Quantity,
+        //             sale.UnitPrice.ToString(CultureInfo.InvariantCulture),
+        //             sale.TotalPrice.ToString(CultureInfo.InvariantCulture)));
+        // }
 
         return Encoding.UTF8.GetBytes(sb.ToString());
     }

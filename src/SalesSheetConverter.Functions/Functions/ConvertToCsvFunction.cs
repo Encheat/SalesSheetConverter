@@ -15,13 +15,13 @@ public class ConvertToCsvFunction
 {
     private readonly ILogger<ConvertToCsvFunction> _logger;
     private readonly CsvExportService _csvExportService;
-    private readonly DocumentIntelligenceService _documentIntelligenceService;
+    private readonly OpenAIService _openAiService;
 
-    public ConvertToCsvFunction(ILogger<ConvertToCsvFunction> logger, CsvExportService csvExportService, DocumentIntelligenceService documentIntelligenceService)
+    public ConvertToCsvFunction(ILogger<ConvertToCsvFunction> logger, CsvExportService csvExportService, OpenAIService openAiService)
     {
         _logger = logger;
         _csvExportService = csvExportService;
-        _documentIntelligenceService = documentIntelligenceService;
+        _openAiService = openAiService;
     }
 
     [Function("ConvertToCsv")]
@@ -55,10 +55,11 @@ public class ConvertToCsvFunction
             }
             _logger.LogInformation($"Parsing multipart with boundary: {boundary}");
 
-            var sales = new List<SaleRecord>();
+            var sales = new List<SalesExtractionResult>();
             var reader = new MultipartReader(boundary, req.Body);
 
             MultipartSection? section = await reader.ReadNextSectionAsync();
+            //TODO: Fix so all files are gathered into a list, then proceed with calling the AI service.
             while (section != null)
             {
                 var contentDisposition = ContentDispositionHeaderValue.Parse(section.ContentDisposition);
@@ -76,8 +77,11 @@ public class ConvertToCsvFunction
                     // TODO: replace this placeholder with actual extraction logic
                     // var extractedSales = await _documentIntelligenceService.ExtractSalesAsync(memoryStream);
                     // sales.AddRange(extractedSales);
-                    var text = await _documentIntelligenceService.ExtractTextAsync(memoryStream);
+                    var text = await _openAiService.ExtractAsync(memoryStream, section.ContentType?.ToString() ?? "image/jpeg");
                     _logger.LogInformation($"OCR Result:\n{text}");
+
+                    //TODO: handle text conversion
+
                     // return new OkObjectResult(text);
                 }
 
@@ -87,17 +91,6 @@ public class ConvertToCsvFunction
             _logger.LogInformation($"Total sections processed, sales count: {sales.Count}");
 
             //PLACEHOLDER
-            sales = new List<SaleRecord>
-            {
-                new()
-                {
-                    Date = DateOnly.FromDateTime(DateTime.Today),
-                    Item = "Widget A",
-                    Quantity = 2,
-                    UnitPrice = 9.99m,
-                    TotalPrice = 19.98m
-                }
-            };
 
             var csv = _csvExportService.CreateCsv(sales);
 

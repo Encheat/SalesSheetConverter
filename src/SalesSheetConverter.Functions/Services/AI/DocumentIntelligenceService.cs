@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace SalesSheetConverter.Functions.Services.AI;
 
+[Obsolete("This service is deprecated - DI performed poorly. Moving to Open AI Vision Service.")]
 public class DocumentIntelligenceService
 {
     private readonly DocumentIntelligenceClient _client;
