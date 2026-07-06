@@ -5,11 +5,10 @@ public class SalesExtractionResult
     public string? DocumentType { get; set; }
     public string? Confidence { get; set; }
     public string? Notes { get; set; } //May not need this, I like the above two fields more
-    public List<SaleRecord> Sales { get; set; } = [];
-
+    public List<Row> ColumnValueEntries { get; set; } = [];
 }
 
-public class SaleRecord
+public class Row
 {
-    public Dictionary<string, string?> Fields { get; set; } = [];
+    public Dictionary<string, string?> ColumnValue { get; set; } = [];
 }

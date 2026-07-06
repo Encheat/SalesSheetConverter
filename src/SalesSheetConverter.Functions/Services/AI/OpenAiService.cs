@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.Text.Json;
 using Azure;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
@@ -28,7 +29,10 @@ public class OpenAIService
         _chatClient = client.GetChatClient(deployment);
     }
 
-    async Task<string> ExtractJsonAsync(IEnumerable<ImageDetails> images, string promptName = "SalesExtraction")
+    public async Task<string> ExtractJsonAsync(
+        IEnumerable<ImageDetails> images, 
+        string promptName = "SalesExtraction", 
+        CancellationToken cancellationToken = default)
     {
         var prompt = LoadPrompt(promptName);
 
@@ -40,7 +44,7 @@ public class OpenAIService
         foreach (var image in images)
         {
             using var memory = new MemoryStream();
-            await image.Stream.CopyToAsync(memory);
+            await image.Stream.CopyToAsync(memory, cancellationToken);
 
             var content = new List<ChatMessageContentPart>
             {
@@ -52,33 +56,33 @@ public class OpenAIService
             messages.Add(ChatMessage.CreateUserMessage(content));
         }
 
-        var response = await _chatClient.CompleteChatAsync(messages);
+        var response = await _chatClient.CompleteChatAsync(messages, cancellationToken: cancellationToken);
 
         return string.Concat(
             response.Value.Content
                 .Where(c => !string.IsNullOrWhiteSpace(c.Text))
                 .Select(c => c.Text));
     }
-    
+
     private static string LoadPrompt(string promptName)
     {
-        return File.ReadAllText(
+        var prompt = File.ReadAllText(
             Path.Combine(
                 AppContext.BaseDirectory,
                 "Services",
                 "AI",
                 "Prompts",
                 $"{promptName}Prompt.txt"));
+        
+        prompt += $"\n{LoadSchema()}";
+        return prompt;
     }
 
-    private static string LoadSchema(string promptName)
+    //TODO: we may make this dependent on promptName
+    private static string LoadSchema()
     {
-        return File.ReadAllText(
-            Path.Combine(
-                AppContext.BaseDirectory,
-                "Services",
-                "AI",
-                "Prompts",
-                $"{promptName}Schema.txt"));
+        var blankSalesExtractionResult = new SalesExtractionResult();
+        blankSalesExtractionResult.ColumnValueEntries.Add(new Row());
+        return JsonSerializer.Serialize(blankSalesExtractionResult);
     }
 }

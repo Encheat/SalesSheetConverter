@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using SalesSheetConverter.Shared.Models;
 
@@ -10,20 +9,20 @@ public class CsvExportService
     {
         var sb = new StringBuilder();
 
-        //TODO: rework csv export to handle generic incoming objects
 
-        // sb.AppendLine("Date,Item,Quantity,Unit Price,Total Price");
+        sb.AppendLine("Date,Item,Quantity,Unit Price,Total Price");
 
-        // foreach (var sale in sales)
-        // {
-        //     sb.AppendLine(
-        //         string.Join(",",
-        //             sale.Date?.ToString("yyyy-MM-dd") ?? "",
-        //             Escape(sale.Item),
-        //             sale.Quantity,
-        //             sale.UnitPrice.ToString(CultureInfo.InvariantCulture),
-        //             sale.TotalPrice.ToString(CultureInfo.InvariantCulture)));
-        // }
+        foreach (var sale in sales)
+        {
+            //TODO: rework csv export to handle generic incoming objects
+            // sb.AppendLine(
+            //     string.Join(",",
+            //         sale.Date?.ToString("yyyy-MM-dd") ?? "",
+            //         Escape(sale.Item),
+            //         sale.Quantity,
+            //         sale.UnitPrice.ToString(CultureInfo.InvariantCulture),
+            //         sale.TotalPrice.ToString(CultureInfo.InvariantCulture)));
+        }
 
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
