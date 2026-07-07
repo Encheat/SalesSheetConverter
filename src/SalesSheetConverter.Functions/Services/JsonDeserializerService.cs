@@ -11,9 +11,9 @@ public sealed class JsonDeserializationService
             PropertyNameCaseInsensitive = true
         };
 
-    public SalesExtractionResult Parse(string json)
+    public ExtractionResult Parse(string json)
     {
-        var result = JsonSerializer.Deserialize<SalesExtractionResult>(json, Options);
+        var result = JsonSerializer.Deserialize<ExtractionResult>(json, Options);
 
         if (result is null)
         {

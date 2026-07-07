@@ -1,9 +1,9 @@
 using System.ClientModel;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
-using Azure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OpenAI;
-using OpenAI.Chat;
 using OpenAI.Responses;
 using SalesSheetConverter.Shared.Models;
 
@@ -11,13 +11,21 @@ namespace SalesSheetConverter.Functions.Services.AI;
 
 public class OpenAIService
 {
-    private readonly ChatClient _chatClient;
+    #pragma warning disable OPENAI001 //I don't like this but I'd rather use future-supported features than older patterns.
+    private readonly ILogger<OpenAIService> _logger;
+    private readonly ResponsesClient _responsesClient;
 
-    public OpenAIService(IConfiguration configuration)
+    private readonly string _deployment;
+    private readonly bool _isLocal;
+
+    public OpenAIService(ILogger<OpenAIService> logger, IConfiguration configuration, bool isLocal)
     {
+        #pragma warning disable OPENAI001
+        _logger = logger;
         var endpoint = configuration["OpenAI:Endpoint"]!;
         var apiKey = configuration["OpenAI:ApiKey"]!;
-        var deployment = configuration["OpenAI:Deployment"]!;
+        _deployment = configuration["OpenAI:Deployment"]!;
+        _isLocal = isLocal;
 
        var client = new OpenAIClient(
             credential: new ApiKeyCredential(apiKey),
@@ -26,7 +34,7 @@ public class OpenAIService
                 Endpoint = new Uri(endpoint)
             });
 
-        _chatClient = client.GetChatClient(deployment);
+        _responsesClient = client.GetResponsesClient();
     }
 
     public async Task<string> ExtractJsonAsync(
@@ -34,34 +42,48 @@ public class OpenAIService
         string promptName = "SalesExtraction", 
         CancellationToken cancellationToken = default)
     {
-        var prompt = LoadPrompt(promptName);
-
-        var messages = new List<ChatMessage>
+        var contentParts = new List<ResponseContentPart>
         {
-            ChatMessage.CreateSystemMessage(prompt)
+            ResponseContentPart.CreateInputTextPart(LoadPrompt(promptName))
         };
 
         foreach (var image in images)
         {
-            using var memory = new MemoryStream();
-            await image.Stream.CopyToAsync(memory, cancellationToken);
+            // using var memory = new MemoryStream();
+            // await image.Stream.CopyToAsync(memory, cancellationToken);
+            // var bytes = BinaryData.FromBytes(memory.ToArray(), image.ContentType);
+            var bytes = BinaryData.FromStream(image.Stream, image.ContentType);
+            var content = ResponseContentPart.CreateInputImagePart(bytes);
 
-            var content = new List<ChatMessageContentPart>
-            {
-                ChatMessageContentPart.CreateImagePart(
-                    BinaryData.FromBytes(memory.ToArray()),
-                    image.ContentType)
-            };
-            //Adding it to the list of messages to be sent.
-            messages.Add(ChatMessage.CreateUserMessage(content));
+            contentParts.Add(content);
         }
 
-        var response = await _chatClient.CompleteChatAsync(messages, cancellationToken: cancellationToken);
+        CreateResponseOptions options = new()
+        {
+            Model = _deployment,
+            InputItems =
+            {
+                ResponseItem.CreateUserMessageItem(contentParts),
+            },
+        };
 
-        return string.Concat(
-            response.Value.Content
-                .Where(c => !string.IsNullOrWhiteSpace(c.Text))
-                .Select(c => c.Text));
+        ResponseResult response = new();
+
+        try
+        {
+            response = await _responsesClient.CreateResponseAsync(options, cancellationToken);
+        }
+        catch(Exception e)
+        {
+            _logger.LogError(e, "Exception occured when calling AI endpoint.");
+        }
+
+        if (_isLocal)
+        {
+            Console.WriteLine($"[ASSISTANT]: {response.GetOutputText()}");
+        }
+
+        return response.GetOutputText();
     }
 
     private static string LoadPrompt(string promptName)
@@ -81,8 +103,7 @@ public class OpenAIService
     //TODO: we may make this dependent on promptName
     private static string LoadSchema()
     {
-        var blankSalesExtractionResult = new SalesExtractionResult();
-        blankSalesExtractionResult.ColumnValueEntries.Add(new Row());
+        var blankSalesExtractionResult = new ExtractionResult();
         return JsonSerializer.Serialize(blankSalesExtractionResult);
     }
 }

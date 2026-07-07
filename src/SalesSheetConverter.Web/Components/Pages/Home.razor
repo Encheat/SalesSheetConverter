@@ -79,11 +79,15 @@
                 return;
             }
 
+            var contentDisposition = response.Content.Headers.ContentDisposition;
+            var fileName = contentDisposition?.FileNameStar?.Trim('"')
+                ?? contentDisposition?.FileName?.Trim('"')
+                ?? "Sales.csv";
+
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
 
-            await JS.InvokeVoidAsync("downloadFile", "Sales.csv", "text/csv", base64);
-            _result = "CSV downloaded successfully.";
+            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
         }
         catch (Exception ex)
         {

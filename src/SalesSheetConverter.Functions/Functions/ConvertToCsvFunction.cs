@@ -59,9 +59,6 @@ public class ConvertToCsvFunction
                 await bad.WriteStringAsync("Empty boundary entry value.");
                 return bad;
             }
-            _logger.LogInformation($"Parsing multipart with boundary: {boundary}");
-
-            var sales = new List<SalesExtractionResult>();
             var images = new List<ImageDetails>();
             var reader = new MultipartReader(boundary, req.Body);
 
@@ -69,8 +66,6 @@ public class ConvertToCsvFunction
             while (section != null)
             {
                 var contentDisposition = ContentDispositionHeaderValue.Parse(section.ContentDisposition);
-                _logger.LogInformation($"Section found: {contentDisposition.FileName}");
-
                 if (contentDisposition.DispositionType.Equals("form-data") &&
                     !string.IsNullOrEmpty(contentDisposition.FileName.Value))
                 {
@@ -80,31 +75,27 @@ public class ConvertToCsvFunction
 
                     _logger.LogInformation($"Uploaded file: {contentDisposition.FileName.Value}, Size: {memoryStream.Length} bytes");
 
+                    var type = string.IsNullOrWhiteSpace(section.ContentType)
+                        ? "image/jpeg"
+                        : section.ContentType;
+
                     images.Add(new ImageDetails
                     {
                         Stream = memoryStream,
-                        ContentType = section.ContentType?.ToString() ?? "image/jpeg"
+                        ContentType = type
                     });
                 }
 
                 section = await reader.ReadNextSectionAsync();
             }
 
-            if (images.Count > 0)
-            {
-                var text = await _openAiService.ExtractJsonAsync(images);
-                _logger.LogInformation($"AI Result:\n{text}");
-
-                sales.Add(_jsonDeserializationService.Parse(text));
-            }
-
-            _logger.LogInformation($"Total sections processed, sales count: {sales.Count}");
-
-            var csv = _csvExportService.CreateCsv(sales);
+            var text = await _openAiService.ExtractJsonAsync(images);
+            var rawCsv = _jsonDeserializationService.Parse(text);
+            var csv = _csvExportService.CreateCsv(rawCsv);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "text/csv");
-            response.Headers.Add("Content-Disposition", "attachment; filename=Sales.csv");
+            response.Headers.Add("Content-Disposition", $"attachment; filename={rawCsv.FileName}");
             await response.WriteBytesAsync(csv);
 
             return response;

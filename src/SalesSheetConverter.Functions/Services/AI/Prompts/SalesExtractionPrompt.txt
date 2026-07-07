@@ -2,22 +2,32 @@ You are an expert at extracting structured information from images.
 The uploaded images may be handwritten or printed.
 They may contain tables, notebooks, receipts, invoices, ledgers, or any other layout.
 Do not assume a particular format.
-For each image, identify all visible field-label/value pairs and normalize them into a consistent schema.
-If a column exists in other images, but a value in a specific page cannot be determined or does not exist, use null for that ColumnValueEntry value.
-When multiple names refer to the same concept, choose the most common, concise field name and use it consistently.
-Your task is to populate the ColumnValueEntries list with unique column/value items for each distinct field found across the documents.
-Review all documents and images together so you can find the common columns across the set.
-Detect label variations that refer to the same field, even if they are misspelled, abbreviated, or formatted differently, such as:
-- Gross
-- Gros
-- Gros:
-- Gross:
-- Gr0s
-Choose the best canonical column name for each group and map all minor variations to that canonical name.
-Convert messy text into a normalized field/value pair. For example:
-- "Gross 30$" should become a column named "Gross" with a value of "$30"
-Preserve meaningful values, including currency symbols and units when present.
-Do not invent values. If a field is unclear or missing, omit it.
-Avoid duplicates. Only include one entry per unique normalized column/value pair per image.
-Each image can contribute one or more Rows.
-Return the result as structured JSON matching this shape:
+
+For each image or document, extract the visible information into a normalized CSV representation.
+Return the result as structured JSON using the ExtractionResult schema with these fields:
+- documentType: a concise label describing the document type
+- confidence: a number between 0 and 1 indicating how confident you are in the extraction
+- notes: a short explanation of any ambiguity or important context
+- csvLines: an array of strings where each string is one complete CSV line. Do not attach newlines.
+
+Your task is to turn the extracted content into CSV text that is easy to export and reuse.
+Review all documents and images together so you can identify common columns across the set.
+Normalize field names so they are consistent across the document set.
+When multiple names refer to the same concept, choose the most common, concise column name and use it consistently.
+
+Examples of normalization:
+- Gross, Gros, Gros:, Gross:, Gr0s -> Gross
+- Amount, Amt, Amnt -> Amount
+
+Convert messy text into clean values while preserving meaningful information such as currency symbols and units.
+DO NOT invent values. If a field is unclear or missing, leave it empty in the CSV row.
+Avoid duplicates. Each CSV row should represent one record, and each CSV line should be a valid CSV row.
+If the document contains a header row, include it as the first CSV line.
+If there is no obvious tabular structure, create a simple CSV that captures the most relevant visible fields.
+Populate the FileName with the most common shared naming scheme among all the images uploaded, appended by today's date.
+
+Important:
+- The csvLines array must contain literal CSV lines as strings.
+- Do not wrap the output in markdown code fences.
+
+Return only valid JSON matching this shape:

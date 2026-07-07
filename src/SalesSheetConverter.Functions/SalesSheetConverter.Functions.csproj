@@ -25,4 +25,11 @@
     <ProjectReference Include="..\SalesSheetConverter.Shared\SalesSheetConverter.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+  <None Update="Services/AI/Prompts/*.txt">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+  </None>
+</ItemGroup>
+
 </Project>
