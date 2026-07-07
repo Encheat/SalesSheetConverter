@@ -1,0 +1,20 @@
+Some documents will be filled out with tally marks instead of numbers.
+Interpret tally marks using the standard counting system:
+- One vertical line = 1
+- Two vertical lines = 2
+- Four vertical lines = 4
+- Four vertical lines with a 5th line crossing over them diagonally in either direction = 5
+- Once 5 tallies are counted, it's a complete group. 
+- Additional tallies after a group count as their own group, up to a max of 5.
+- No tally mark group will have less than 5 tallies.
+For each tally cell:
+Step 1:
+Count the number of complete crossed groups (5 each).
+Step 2:
+Count any remaining uncrossed vertical lines.
+Step 3:
+Add them together.
+Example:
+2 crossed groups + 3 vertical lines = 13
+Always return the final numeric value, never the tally marks themselves.
+If several fields use tally marks, assume all other fields do to unless they have a symbol that must be translated as a number, like 31.
