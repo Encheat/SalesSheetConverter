@@ -39,9 +39,10 @@ public class OpenAIService
 
     public async Task<string> ExtractJsonAsync(
         IEnumerable<ImageDetails> images, 
-        string promptName = "SalesExtraction", 
+        string promptName = "DocumentExtraction", 
         CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation($"Beginning ExtractJsonAsync() for prompt {promptName}");
         var contentParts = new List<ResponseContentPart>
         {
             ResponseContentPart.CreateInputTextPart(LoadPrompt(promptName))
@@ -49,9 +50,6 @@ public class OpenAIService
 
         foreach (var image in images)
         {
-            // using var memory = new MemoryStream();
-            // await image.Stream.CopyToAsync(memory, cancellationToken);
-            // var bytes = BinaryData.FromBytes(memory.ToArray(), image.ContentType);
             var bytes = BinaryData.FromStream(image.Stream, image.ContentType);
             var content = ResponseContentPart.CreateInputImagePart(bytes);
 
@@ -76,6 +74,7 @@ public class OpenAIService
         catch(Exception e)
         {
             _logger.LogError(e, "Exception occured when calling AI endpoint.");
+            return string.Empty;
         }
 
         if (_isLocal)
@@ -100,7 +99,6 @@ public class OpenAIService
         return prompt;
     }
 
-    //TODO: we may make this dependent on promptName
     private static string LoadSchema()
     {
         var blankSalesExtractionResult = new ExtractionResult();

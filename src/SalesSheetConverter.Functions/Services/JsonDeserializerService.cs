@@ -13,6 +13,7 @@ public sealed class JsonDeserializationService
 
     public ExtractionResult Parse(string json)
     {
+        //TODO: add csv verification. I don't trust AI to nail that every time.
         var result = JsonSerializer.Deserialize<ExtractionResult>(json, Options);
 
         if (result is null)

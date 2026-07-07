@@ -75,6 +75,7 @@
 
             if (!response.IsSuccessStatusCode)
             {
+                //TODO: prevent throwing technical issues to users.
                 _result = await response.Content.ReadAsStringAsync();
                 return;
             }
@@ -91,7 +92,11 @@
         }
         catch (Exception ex)
         {
+            //TODO: prevent throwing errors to users.
             _result = $"Upload failed: {ex.Message}";
         }
+
+        //TODO: Add 'log error' button that captures the _result and sends a notification with the revelevant
+        // info so I don't have to dig through logs to see what happened.
     }
 }
