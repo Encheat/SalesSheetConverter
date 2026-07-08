@@ -4,5 +4,7 @@
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.preDeployTask": "publish (functions)",
-    "azureFunctions.projectSubpath": "src\\SalesSheetConverter.Functions"
+    "azureFunctions.projectSubpath": "src\\SalesSheetConverter.Functions",
+    "appService.defaultWebAppToDeploy": "None",
+    "appService.deploySubpath": "src\\SalesSheetConverter.Web\\bin\\Release\\net10.0\\publish"
 }
