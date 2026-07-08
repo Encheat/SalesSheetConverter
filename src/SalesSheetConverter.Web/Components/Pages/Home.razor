@@ -41,7 +41,7 @@
     private async Task Upload()
     {
         if (_files.Count == 0) return;
-
+        @* //TODO: add spinner that disables input while waiting  *@
         _result = await UploadService.Upload(_files);
     }
 }

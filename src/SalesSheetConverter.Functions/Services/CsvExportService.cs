@@ -7,6 +7,7 @@ public class CsvExportService
 {
     public byte[] CreateCsv(ExtractionResult rawCsv)
     {
+        //TODO: verify csv? Not sure how, but I don't trust the AI to work perfectly every time.
         var csv = string.Join(Environment.NewLine, rawCsv.CsvLines);
 
         return Encoding.UTF8.GetBytes(csv);
