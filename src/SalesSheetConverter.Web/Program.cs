@@ -1,25 +1,26 @@
+using SalesSheetConverter.Web.Clients;
 using SalesSheetConverter.Web.Components;
+using SalesSheetConverter.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 //Make sure local settings are added if they exist, ignore if not
-builder.Configuration
-    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-builder.Services.AddHttpClient("FunctionsApi", client =>
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddHttpClient<IConversionApiClient, ConversionApiClient>(client =>
 {
     var baseUrl = builder.Configuration["FunctionsApi:BaseUrl"];
 
     if (string.IsNullOrWhiteSpace(baseUrl))
     {
-        throw new InvalidOperationException("FunctionsApi:BaseUrl must be configured.");
+        throw new InvalidOperationException("No base Url found.");
     }
 
     client.BaseAddress = new Uri(baseUrl);
 });
+builder.Services.AddScoped<IUploadService, UploadService>();
 
 var app = builder.Build();
 

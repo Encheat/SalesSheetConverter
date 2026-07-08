@@ -3,14 +3,18 @@
 
 @using System.Net.Http.Headers
 @using Microsoft.AspNetCore.Components.Forms
+@using SalesSheetConverter.Web.Services
+@using SalesSheetConverter.Web.Constants
 
 @inject IJSRuntime JS
 @inject IHttpClientFactory HttpClientFactory
+@inject IUploadService UploadService
+
 <h3>Sales Sheet Converter</h3>
 
 <p>Upload the images of your sales sheets:</p>
 
-<InputFile OnChange="OnFileSelected" multiple accept=@string.Join(",", allowedTypes) />
+<InputFile OnChange="OnFileSelected" multiple accept=@string.Join(",", FileTypeConstants.AllowedFileTypes) />
 
 <br /><br />
 
@@ -27,17 +31,6 @@
 @code {
     private List<IBrowserFile> _files = new();
     private string? _result;
-    string[] allowedTypes = new[]
-    {
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/gif",
-        "image/bmp",
-        "image/webp",
-        "image/tiff",
-        "image/svg+xml"
-    };
 
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
@@ -49,54 +42,6 @@
     {
         if (_files.Count == 0) return;
 
-        try{
-            using var content = new MultipartFormDataContent();
-
-            foreach (var file in _files)
-            {
-                if (!allowedTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
-                {
-                    _result = $"Only image files are allowed: {file.Name} is invalid type {file.ContentType}.";
-                    return;
-                }
-                
-                using var stream = file.OpenReadStream(10 * 1024 * 1024);
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                
-                var fileContent = new ByteArrayContent(ms.ToArray());
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                content.Add(fileContent, "files", file.Name);
-            }
-
-            var http = HttpClientFactory.CreateClient("FunctionsApi");
-
-            var response = await http.PostAsync("http://localhost:7071/api/ConvertToCsv", content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                //TODO: prevent throwing technical issues to users.
-                _result = await response.Content.ReadAsStringAsync();
-                return;
-            }
-
-            var contentDisposition = response.Content.Headers.ContentDisposition;
-            var fileName = contentDisposition?.FileNameStar?.Trim('"')
-                ?? contentDisposition?.FileName?.Trim('"')
-                ?? "Sales.csv";
-
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var base64 = Convert.ToBase64String(bytes);
-
-            await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
-        }
-        catch (Exception ex)
-        {
-            //TODO: prevent throwing errors to users.
-            _result = $"Upload failed: {ex.Message}";
-        }
-
-        //TODO: Add 'log error' button that captures the _result and sends a notification with the revelevant
-        // info so I don't have to dig through logs to see what happened.
+        _result = await UploadService.Upload(_files);
     }
 }
