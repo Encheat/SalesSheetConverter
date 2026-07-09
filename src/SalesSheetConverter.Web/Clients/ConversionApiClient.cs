@@ -21,7 +21,7 @@ public class ConversionApiClient : IConversionApiClient
         var isLocal = _httpClient.BaseAddress?.Host.Contains("localhost", StringComparison.OrdinalIgnoreCase) == true;
         if (!isLocal)
         {
-            var key = _configuration["FunctionsApi:Key"] ?? _configuration["FunctionsApi__Key"];
+            var key = _configuration["FunctionsApi--Key"];
             if (!string.IsNullOrWhiteSpace(key))
             {
                 request.Headers.Add("x-functions-key", key);

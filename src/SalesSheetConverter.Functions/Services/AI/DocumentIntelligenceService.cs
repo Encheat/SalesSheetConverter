@@ -11,8 +11,8 @@ public class DocumentIntelligenceService
 
     public DocumentIntelligenceService(IConfiguration configuration)
     {
-        var endpoint = configuration["DocumentIntelligence:Endpoint"]!;
-        var apiKey = configuration["DocumentIntelligence:ApiKey"]!;
+        var endpoint = configuration["DocumentIntelligence--Endpoint"]!;
+        var apiKey = configuration["DocumentIntelligence--ApiKey"]!;
 
         _client = new DocumentIntelligenceClient(
             new Uri(endpoint),

@@ -1,5 +1,4 @@
 using System.ClientModel;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,9 +21,9 @@ public class OpenAIService
     {
         #pragma warning disable OPENAI001
         _logger = logger;
-        var endpoint = configuration["OpenAI:Endpoint"]!;
-        var apiKey = configuration["OpenAI:ApiKey"]!;
-        _deployment = configuration["OpenAI:Deployment"]!;
+        var endpoint = configuration["OpenAI--Endpoint"]!;
+        var apiKey = configuration["OpenAI--ApiKey"]!;
+        _deployment = configuration["OpenAI--Deployment"]!;
         _isLocal = isLocal;
 
        var client = new OpenAIClient(
@@ -74,7 +73,7 @@ public class OpenAIService
         catch(Exception e)
         {
             _logger.LogError(e, "Exception occured when calling AI endpoint.");
-            return string.Empty;
+            return e.Message;
         }
 
         if (_isLocal)

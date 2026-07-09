@@ -15,13 +15,12 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddHttpClient<IConversionApiClient, ConversionApiClient>(client =>
 {
-    var baseUrl = builder.Configuration["FunctionsApi:BaseUrl"]
-    ?? builder.Configuration["FunctionsApi__BaseUrl"];
+    var baseUrl = builder.Configuration["FunctionsApi--BaseUrl"];
 
     if (string.IsNullOrWhiteSpace(baseUrl))
     {
         throw new InvalidOperationException(
-            "Functions API base URL was not configured. Set FunctionsApi__BaseUrl in Azure App Service settings.");
+            "Functions API base URL was not configured. Set FunctionsApi--BaseUrl in Azure App Service settings.");
     }
 
     client.BaseAddress = new Uri(baseUrl);
