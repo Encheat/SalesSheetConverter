@@ -45,8 +45,8 @@ public class UploadService : IUploadService
             if (!response.IsSuccessStatusCode)
             {
                 //TODO: Improve returned value
-                _result = "An issue has occurred.";
-                // _result = await response.Content.ReadAsStringAsync();
+                // _result = "An issue has occurred.";
+                _result = await response.Content.ReadAsStringAsync();
                 return _result;
             }
 

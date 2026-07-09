@@ -1,0 +1,8 @@
+
+
+In .Web:
+dotnet publish -c Release
+Azure tab -> deploy to web app
+
+In Function:
+func azure functionapp publish SalesSheetFunction

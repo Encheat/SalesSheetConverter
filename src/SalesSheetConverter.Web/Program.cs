@@ -1,26 +1,33 @@
 using SalesSheetConverter.Web.Clients;
 using SalesSheetConverter.Web.Components;
 using SalesSheetConverter.Web.Services;
+using SalesSheetConverter.Web.Spinner;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//Make sure local settings are added if they exist, ignore if not
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+//Make sure local settings are added if we're local
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddHttpClient<IConversionApiClient, ConversionApiClient>(client =>
 {
-    var baseUrl = builder.Configuration["FunctionsApi:BaseUrl"];
+    var baseUrl = builder.Configuration["FunctionsApi:BaseUrl"]
+    ?? builder.Configuration["FunctionsApi__BaseUrl"];
 
     if (string.IsNullOrWhiteSpace(baseUrl))
     {
-        throw new InvalidOperationException("No base Url found.");
+        throw new InvalidOperationException(
+            "Functions API base URL was not configured. Set FunctionsApi__BaseUrl in Azure App Service settings.");
     }
 
     client.BaseAddress = new Uri(baseUrl);
 });
 builder.Services.AddScoped<IUploadService, UploadService>();
+builder.Services.AddScoped<ISpinnerProvider, SpinnerProvider>();
 
 var app = builder.Build();
 
