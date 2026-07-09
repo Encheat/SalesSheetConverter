@@ -1,0 +1,65 @@
+@page "/download"
+@rendermode InteractiveServer
+
+@using SalesSheetConverter.Web.Services
+@using SalesSheetConverter.Web.Spinner
+
+@inherits LayoutComponentBase
+
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpClientFactory
+@inject IUploadService UploadService
+@inject ISpinnerProvider SpinnerProvider
+@inject FileTransferService FileTransferService
+
+<h3>Download Starting</h3>
+
+<p>Please wait while the images are being processed...</p>
+
+<br /><br />
+
+@if (SpinnerProvider.IsBusy){
+    <div id="page-loader">
+        <div class="spinner"></div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_result))
+{
+    <h4>@_result</h4>
+}
+
+@code {
+    private string? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var files = FileTransferService.Files;
+        SpinnerProvider.Wait();
+
+        try
+        {
+            _result = await UploadService.Upload(files);
+        }
+        finally
+        {
+            SpinnerProvider.Resume();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SpinnerProvider.OnSpinnerStateChanged += HandleSpinnerChanged;
+    }
+
+    private void HandleSpinnerChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SpinnerProvider.OnSpinnerStateChanged -= HandleSpinnerChanged;
+    }
+}

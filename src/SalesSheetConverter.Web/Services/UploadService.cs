@@ -6,6 +6,11 @@ using SalesSheetConverter.Web.Constants;
 
 namespace SalesSheetConverter.Web.Services;
 
+public interface IUploadService
+{
+    public Task<string> Upload(List<UploadedFile> files);
+}
+
 public class UploadService : IUploadService
 {
     private readonly IConversionApiClient _conversionApiClient;
@@ -17,7 +22,7 @@ public class UploadService : IUploadService
         _jsRuntime = jsRuntime;
     }
 
-    public async Task<string> Upload(List<IBrowserFile> files)
+    public async Task<string> Upload(List<UploadedFile> files)
     {
         var _result = "";
         try{
@@ -31,11 +36,7 @@ public class UploadService : IUploadService
                     return _result;
                 }
                 
-                using var stream = file.OpenReadStream(10 * 1024 * 1024);
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                
-                var fileContent = new ByteArrayContent(ms.ToArray());
+                var fileContent = new ByteArrayContent(file.Bytes);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
                 content.Add(fileContent, "files", file.Name);
             }
@@ -68,6 +69,7 @@ public class UploadService : IUploadService
 
         //TODO: Add 'log error' button that captures the _result and sends a notification with the revelevant
         // info so I don't have to dig through logs to see what happened.
+        _result = "Download Complete!";
         return _result;
     }
 }

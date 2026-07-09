@@ -1,18 +1,14 @@
 @page "/"
 @rendermode InteractiveServer
 
-@using System.Net.Http.Headers
 @using Microsoft.AspNetCore.Components.Forms
 @using SalesSheetConverter.Web.Services
 @using SalesSheetConverter.Web.Constants
-@using SalesSheetConverter.Web.Spinner
 
 @inherits LayoutComponentBase
 
-@inject IJSRuntime JS
-@inject IHttpClientFactory HttpClientFactory
-@inject IUploadService UploadService
-@inject ISpinnerProvider SpinnerProvider
+@inject FileTransferService FileTransferService
+@inject NavigationManager Navigation
 
 <h3>Sales Sheet Converter</h3>
 
@@ -26,12 +22,6 @@
     Convert to CSV
 </button>
 
-@if (SpinnerProvider.IsBusy){
-    <div id="page-loader">
-        <div class="spinner"></div>
-    </div>
-}
-
 @if (!string.IsNullOrWhiteSpace(_result))
 {
     <h4>Result</h4>
@@ -39,12 +29,29 @@
 }
 
 @code {
-    private List<IBrowserFile> _files = new();
+    private List<UploadedFile> _files = new();
     private string? _result;
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
-        _files = e.GetMultipleFiles().ToList();
+        var selectedFiles = new List<UploadedFile>();
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+
+            selectedFiles.Add(new UploadedFile
+            {
+                Name = file.Name,
+                ContentType = file.ContentType,
+                Bytes = memoryStream.ToArray()
+            });
+        }
+
+        _files = selectedFiles;
+        FileTransferService.Files = _files;
         _result = null;
     }
 
@@ -54,30 +61,9 @@
             _result = "You must upload at least one file!";
             return;
         }
-        SpinnerProvider.Wait();
 
-        try
-        {
-            _result = await UploadService.Upload(_files);
-        }
-        finally
-        {
-            SpinnerProvider.Resume();
-        }
-    }
+        FileTransferService.Files = _files;
 
-    protected override void OnInitialized()
-    {
-        SpinnerProvider.OnSpinnerStateChanged += HandleSpinnerChanged;
-    }
-
-    private void HandleSpinnerChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        SpinnerProvider.OnSpinnerStateChanged -= HandleSpinnerChanged;
+        Navigation.NavigateTo("/download");
     }
 }

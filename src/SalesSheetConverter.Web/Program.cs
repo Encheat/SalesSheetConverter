@@ -27,6 +27,7 @@ builder.Services.AddHttpClient<IConversionApiClient, ConversionApiClient>(client
 });
 builder.Services.AddScoped<IUploadService, UploadService>();
 builder.Services.AddScoped<ISpinnerProvider, SpinnerProvider>();
+builder.Services.AddScoped<FileTransferService>();
 
 var app = builder.Build();
 
