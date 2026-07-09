@@ -30,12 +30,6 @@ public class UploadService : IUploadService
 
             foreach (var file in files)
             {
-                if (!FileTypeConstants.AllowedFileTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
-                {
-                    _result = $"Only image files are allowed: {file.Name} is invalid type {file.ContentType}.";
-                    return _result;
-                }
-                
                 var fileContent = new ByteArrayContent(file.Bytes);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
                 content.Add(fileContent, "files", file.Name);
@@ -60,16 +54,16 @@ public class UploadService : IUploadService
             var base64 = Convert.ToBase64String(bytes);
 
             await _jsRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", base64);
+            _result = "Download complete.";
+            return _result;
         }
         catch (Exception ex)
         {
             //TODO: prevent throwing errors with too much detail to users.
             _result = $"Upload failed: {ex.Message}";
+            return _result;
         }
-
         //TODO: Add 'log error' button that captures the _result and sends a notification with the revelevant
         // info so I don't have to dig through logs to see what happened.
-        _result = "Download Complete!";
-        return _result;
     }
 }

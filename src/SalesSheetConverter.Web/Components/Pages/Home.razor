@@ -14,7 +14,7 @@
 
 <p>Upload the images of your sales sheets:</p>
 
-<InputFile OnChange="OnFileSelected" multiple accept=@string.Join(",", FileTypeConstants.AllowedFileTypes) />
+<InputFile OnChange="OnFileSelected" multiple accept=@string.Join(",", FileTypeConstraints.AllowedMimeTypes) />
 
 <br /><br />
 
@@ -34,34 +34,55 @@
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
+        var uploadedFiles = e.GetMultipleFiles();
+        //Enforce min/max image count restrictions
+        if (uploadedFiles.Count == 0){
+            _result = "You must upload at least one file!";
+            return;
+        }
+        else if(uploadedFiles.Count > 10){
+            _result = "Max 10 files!";
+            return;
+        }
         var selectedFiles = new List<UploadedFile>();
 
-        foreach (var file in e.GetMultipleFiles())
+        foreach (var file in uploadedFiles)
         {
-            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            //Enforce clean filename
+            var fileName = Path.GetFileName(file.Name);
+
+            //Enforce MIME type
+            if (!FileTypeConstraints.AllowedMimeTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+            {
+                _result = $"Only image files are allowed: {fileName} is invalid type {file.ContentType}.";
+                return;
+            }
+
+            using var stream = file.OpenReadStream(20 * 1024 * 1024);
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            //Enforce file type headers
+            var isAllowedFileHeader = await FileTypeConstraints.IsAllowedFileHeader(memoryStream);
+            if(!isAllowedFileHeader){
+                _result = "Only image files are allowed.";
+                return;
+            }
 
             selectedFiles.Add(new UploadedFile
             {
-                Name = file.Name,
+                Name = fileName,
                 ContentType = file.ContentType,
                 Bytes = memoryStream.ToArray()
             });
         }
 
         _files = selectedFiles;
-        FileTransferService.Files = _files;
-        _result = null;
     }
 
     private async Task Upload()
     {
-        if (_files.Count == 0){
-            _result = "You must upload at least one file!";
-            return;
-        }
-
         FileTransferService.Files = _files;
 
         Navigation.NavigateTo("/download");
