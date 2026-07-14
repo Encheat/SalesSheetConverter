@@ -1,9 +1,9 @@
 @page "/download"
 @rendermode InteractiveServer
-@* TODO: Make sure this page is only accessible through the redirect. If no documents exist, redirect to home. *@
 
 @using SalesSheetConverter.Web.Services
 @using SalesSheetConverter.Web.Spinner
+@using SalesSheetConverter.Web.Models
 
 @inherits LayoutComponentBase
 
@@ -11,7 +11,8 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject IUploadService UploadService
 @inject ISpinnerProvider SpinnerProvider
-@inject FileTransferService FileTransferService
+@inject IFileTransferService FileTransferService
+@inject NavigationManager Navigation
 
 <h3>Download Starting</h3>
 
@@ -31,24 +32,43 @@
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public string? SessionId { get; set; }
+
     private string? _result;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        base.OnInitialized();
-        var files = FileTransferService.Files;
-        SpinnerProvider.Wait();
+        if (!firstRender) {
+            return;
+        }
 
-        try
+        if (!Guid.TryParse(SessionId, out var parsedSessionId))
         {
-            _result = await UploadService.Upload(files);
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        FileTransferRequest? _request = await FileTransferService.TryGetAsync(parsedSessionId);
+
+        try{
+            if (_request is null || _request.Files.Count == 0)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            SpinnerProvider.Wait();
+            _result = await UploadService.Upload(_request.Files);
         }
         finally
         {
+            if(_request is not null) {
+                await FileTransferService.RemoveAsync(_request.SessionId);
+            }
             SpinnerProvider.Resume();
         }
     }
-
     protected override void OnInitialized()
     {
         SpinnerProvider.OnSpinnerStateChanged += HandleSpinnerChanged;
@@ -61,6 +81,7 @@
 
     public void Dispose()
     {
+        //TODO: Test to make sure you can't 'escape' the finally above and navigate away without removing the files.
         SpinnerProvider.OnSpinnerStateChanged -= HandleSpinnerChanged;
     }
 }

@@ -4,10 +4,11 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using SalesSheetConverter.Web.Services
 @using SalesSheetConverter.Web.Constants
+@using SalesSheetConverter.Web.Models
 
 @inherits LayoutComponentBase
 
-@inject FileTransferService FileTransferService
+@inject IFileTransferService FileTransferService
 @inject NavigationManager Navigation
 
 <h3>Sales Sheet Converter</h3>
@@ -34,6 +35,7 @@
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
+        //TODO: add spinner while processing files
         var uploadedFiles = e.GetMultipleFiles();
         //Enforce min/max image count restrictions
         if (uploadedFiles.Count == 0){
@@ -59,6 +61,8 @@
             }
 
             using var stream = file.OpenReadStream(20 * 1024 * 1024);
+            //TODO: Reduce file size to reasonable amount
+            //Potentially handle images passed in by phones differently?
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
@@ -83,8 +87,15 @@
 
     private async Task Upload()
     {
-        FileTransferService.Files = _files;
+        if (_files.Count == 0)
+        {
+            _result = "No files to upload.";
+            return;
+        }
 
-        Navigation.NavigateTo("/download");
+        var request = new FileTransferRequest(_files);
+
+        await FileTransferService.StoreAsync(request);
+        Navigation.NavigateTo($"/download?sessionId={request.SessionId}");
     }
 }
